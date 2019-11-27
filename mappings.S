@@ -1,0 +1,58 @@
+;AUTHOR: RYAN SLATER
+
+  A = 0021
+	B = 1112
+	C = 1212
+	D = 0112
+	E = 0001
+	F = 1211
+	G = 0122
+	H = 1111
+	I = 0011
+	J = 2221
+	K = 0212
+	L = 1121
+	M = 0022
+	N = 0021
+	O = 0222
+	P = 1221
+	Q = 2122
+	R = 0121
+	S = 0111
+	T = 0002
+	U = 0211
+	V = 2111
+	W = 0221
+	X = 2112
+	Y = 2212
+	Z = 1122
+
+;AUTHOR: MAX CARTER
+
+	Display_A = 11110110
+	Display_B = 11111110
+	Display_C = 10111000
+	Display_D = 10111110
+	Display_E = 11111000
+	Display_F = 11110000
+	Display_G = 11101110
+	Display_H = 00110110
+	Display_I = 00000110
+	Display_J = 00011110
+	Display_K = 01111000
+	Display_L = 00111000
+	Display_M = 10010100
+	Display_N = 10110110
+	Display_O = 10111110
+	Display_P = 11110110
+	Display_Q = 11100110
+	Display_R = 01010000
+	Display_S = 11101100
+	Display_T = 01000110
+	Display_U = 00111110
+	Display_V = 00011010
+	Display_W = 00101010
+	Display_X = 11001000
+	Display_Y = 01101110
+	Display_Z = 11011010
+ 
