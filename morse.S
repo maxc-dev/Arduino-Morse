@@ -44,7 +44,10 @@
 	
 ;;; include all port definitions
 #define __SFR_OFFSET 0
-#include <avr/io.h> 				
+#include <avr/io.h> 
+
+;;;include display mappings
+#include "mappings.S"
 
 ;;; Button is connected to PIN 8, PORTB, Bit 0, because that doubles as the ICP1 for timer1.
 	BUTTON = 0
