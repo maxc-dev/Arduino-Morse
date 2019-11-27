@@ -48,10 +48,14 @@
 
 ;;; Button is connected to PIN 8, PORTB, Bit 0, because that doubles as the ICP1 for timer1.
 	BUTTON = 0
-;;; Red, yellow, green LEDs are connected to those bits of PORTB:
-	RED = 5	
-	YELLOW = 4
-	GREEN = 3
+;;; LEDs on display connected to these bits of PORTD:
+	LEDA = 7	
+	LEDB = 1
+	LEDC = 2
+	LEDD = 3
+	LEDE = 4
+	LEDF = 5
+	LEDG = 6
 
 ;;; this is the entry point to the user code, called from init.S. We
 ;;; do the setup of ports, timer and interrupts, then we go to an
@@ -62,8 +66,10 @@
 	.global main
 main:	
 	;; make these pins output:
-	ldi r16, _BV(RED) | _BV(YELLOW) | _BV(GREEN)
-	out DDRB, r16           ;
+	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG)
+	out DDRD, r16
+	mov r20, r16		; store mask for later use
+	out PORTD, r20 		; turn LEDs off as 1 = off
 	
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
@@ -124,10 +130,8 @@ awaiting_press:
 	;; if we are waiting for a button press, then more time than
 	;; 4s has elasped since the last release -- in this case
 	;; we switch the yellow led on and the others off.
-		
-	ldi r16, _BV(BUTTON) 	; green red leds off, but pull-up for
-				; button stays on. 
-	out PORTB, r16		
+		 
+	out PORTD, r20		
 	
 1:	pop r16
 	out SREG, r16 		; restore status register
@@ -226,15 +230,16 @@ released:
 	brcs short_press		; if it is shorter jump to label short
 	
 long_press:
-	ldi r16, _BV(RED) | _BV(BUTTON) ; bit pattern for red LED and
-					; pull-up for button on.
+	ldi r16, _BV(LEDG) | _BV(LEDF) ; bit pattern for red LED and
+	eor r16, r20				; pull-up for button on.
 	rjmp 1f
 
 short_press:
 
-	ldi r16, _BV(GREEN) | _BV(BUTTON) ; bit pattern for green an
-				; pull-up on.
-1:	out PORTB, r16		; transfer bitpattern into PORTB (ie
+	ldi r16, _BV(LEDA) | _BV(LEDB) ; bit pattern for green an
+	eor r16, r20
+	
+1:	out PORTD, r16		; transfer bitpattern into PORTD (ie
 				; do switch the LEDs).
 	
 	pop r16
