@@ -1,0 +1,30 @@
+00000001 = dot
+00000000 = nothing
+00000011 = dash
+
+R5 = 0
+R1 = 0						;counter
+R2 = 0						;shift amount
+R3 = 00000000				;button output added together
+Button release:
+	Reset interrupt1 for 400ms
+	R4 = button press as 8bit		;either 8bit ends in 01/11
+	R2 = R1 * #2				;logical shift of next input increased
+CPSE R2 R5
+Shift_left				;shift left main register of output
+	R3 = (R3 OR R4)			;OR on R3 and R4 to for differences
+	INC R1				;increment R1
+
+Shift_left:
+	LSL R4
+	DEC  R2
+	CMI R2, 0
+	BNE:
+		shift_left
+
+On interrupt1:
+	R1 = 0
+	R2 = 0
+	R4 = 0
+	Display R3
+	R3 = 00000000
