@@ -1,32 +1,3 @@
-;AUTHOR: RYAN SLATER
-
-  	A = 0021
-	B = 1112
-	C = 1212
-	D = 0112
-	E = 0001
-	F = 1211
-	G = 0122
-	H = 1111
-	I = 0011
-	J = 2221
-	K = 0212
-	L = 1121
-	M = 0022
-	N = 0021
-	O = 0222
-	P = 1221
-	Q = 2122
-	R = 0121
-	S = 0111
-	T = 0002
-	U = 0211
-	V = 2111
-	W = 0221
-	XX = 2112
-	YY = 2212
-	ZZ = 1122
-	
 ;Input mappings where 00 = nothing, 01 = dot, 11 = dash
 
 	INPA = 0b00001101
@@ -55,6 +26,65 @@
 	INPX = 0b11010111
 	INPY = 0b11110111
 	INPZ = 0b01011111
+
+;AUTHOR: MAX CARTER
+
+	Display_A = 0b11110110
+	Display_B = 0b11111110
+	Display_C = 0b10111000
+	Display_D = 0b10111110
+	Display_E = 0b11111000
+	Display_F = 0b11110000
+	Display_G = 0b11101110
+	Display_H = 0b00110110
+	Display_I = 0b00000110
+	Display_J = 0b00011110
+	Display_K = 0b01111000
+	Display_L = 0b00111000
+	Display_M = 0b10010100
+	Display_N = 0b10110110
+	Display_O = 0b10111110
+	Display_P = 0b11110110
+	Display_Q = 0b11100110
+	Display_R = 0b01010000
+	Display_S = 0b11101100
+	Display_T = 0b01000110
+	Display_U = 0b00111110
+	Display_V = 0b00011010
+	Display_W = 0b00101010
+	Display_X = 0b11001000
+	Display_Y = 0b01101110
+	Display_Z = 0b11011010
+	Display_Error = 0b11001110
+	
+;removed Mappings:
+	A = 0021
+	B = 1112
+	C = 1212
+	D = 0112
+	E = 0001
+	F = 1211
+	G = 0122
+	H = 1111
+	I = 0011
+	J = 2221
+	K = 0212
+	L = 1121
+	M = 0022
+	N = 0021
+	O = 0222
+	P = 1221
+	Q = 2122
+	R = 0121
+	S = 0111
+	T = 0002
+	U = 0211
+	V = 2111
+	W = 0221
+	XX = 2112
+	YY = 2212
+	ZZ = 1122
+	
 ;As registers only hold 8 bits each letter can be held as lower 8 bits (L) and higher 8 bits (H)
 	AL = 00010101
 	AH = 00000000
@@ -121,33 +151,5 @@
 	.db 0b11110110, 0b11111110, 0b10111000, 0b10111110, 0b11111000, 0b11110000, 0b11101110, 0b00110110, 0b00000110, 0b00011110, 0b01111000, 0b00111000, 0b10010100, 0b10110110, 0b10111110, 0b11110110, 0b11100110, 0b01010000, 0b11101100, 0b01000110, 0b00111110, 0b00011010, 0b00101010, 0b11001000, 0b01101110, 0b11011010, 
 
 
-;AUTHOR: MAX CARTER
 
-	Display_A = 11110110
-	Display_B = 11111110
-	Display_C = 10111000
-	Display_D = 10111110
-	Display_E = 11111000
-	Display_F = 11110000
-	Display_G = 11101110
-	Display_H = 00110110
-	Display_I = 00000110
-	Display_J = 00011110
-	Display_K = 01111000
-	Display_L = 00111000
-	Display_M = 10010100
-	Display_N = 10110110
-	Display_O = 10111110
-	Display_P = 11110110
-	Display_Q = 11100110
-	Display_R = 01010000
-	Display_S = 11101100
-	Display_T = 01000110
-	Display_U = 00111110
-	Display_V = 00011010
-	Display_W = 00101010
-	Display_X = 11001000
-	Display_Y = 01101110
-	Display_Z = 11011010
-	Display_Error = 11001110
  
