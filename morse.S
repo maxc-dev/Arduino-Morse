@@ -33,7 +33,7 @@
 	CPU_FREQ = 16000000
 	TICKS_PER_SEC = CPU_FREQ / (256 * 1024)
 
-	DECISION_LIMIT = 3 * TICKS_PER_SEC / 10 ; 300ms
+	DECISION_LIMIT = 2 * TICKS_PER_SEC / 10 ; 200ms
 	
 ;;; Timer1 capture interrupt is used to record the length of button
 ;;; presses and button releases. 
@@ -73,6 +73,7 @@ main:
 	out DDRD, r16
 	mov r20, r16		; store mask for later use
 	out PORTD, r20 		; turn LEDs off as 1 = off
+	clr r21             ; clear counter ready for use
 	
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
@@ -233,18 +234,23 @@ released:
 	brcs short_press		; if it is shorter jump to label short
 	
 long_press:
-	ldi r16, _BV(LEDG) | _BV(LEDF) ; bit pattern for red LED and
-	eor r16, r20				; pull-up for button on.
+	ldi r22, 0b00000011 
+
 	rjmp 1f
 
 short_press:
 
-	ldi r16, _BV(LEDA) | _BV(LEDB) ; bit pattern for green an
-	eor r16, r20
+	ldi r22, 0b00000001
+
 	
-1:	out PORTD, r16		; transfer bitpattern into PORTD (ie
-				; do switch the LEDs).
-	
+1:	cpi r21, 0b00000000
+	breq skipshift ; skip shifting if multiplier is 0
+	mul r22, r21 ; multiply press value in r22 by multiplier in r21
+	eor r23, r0 ; xor low byte of product into encoded input r23
+
+skipshift:	
+	inc r21
+	inc r21
 	pop r16
 	clr r19			; clear overflow flag in case it was set
 	ret

@@ -23,11 +23,38 @@
 	U = 0211
 	V = 2111
 	W = 0221
-	X = 2112
-	Y = 2212
-	Z = 1122
+	XX = 2112
+	YY = 2212
+	ZZ = 1122
 	
-	
+;Input mappings where 00 = nothing, 01 = dot, 11 = dash
+
+	INPA = 0b00001101
+	INPB = 0b01010111
+	INPC = 0b01110111
+	INPD = 0b00010111
+	INPE = 0b00000001
+	INPF = 0b01110101
+	INPG = 0b00011111
+	INPH = 0b01010101
+	INPI = 0b00000101
+	INPJ = 0b11111101
+	INPK = 0b00110111
+	INPL = 0b01011101
+	INPM = 0b00001111
+	INPN = 0b00001101
+	INPO = 0b00111111
+	INPP = 0b01111101
+	INPQ = 0b11011111
+	INPR = 0b00011101
+	INPS = 0b00010101
+	INPT = 0b00000011
+	INPU = 0b00110101
+	INPV = 0b11010101
+	INPW = 0b00111101
+	INPX = 0b11010111
+	INPY = 0b11110111
+	INPZ = 0b01011111
 ;As registers only hold 8 bits each letter can be held as lower 8 bits (L) and higher 8 bits (H)
 	AL = 00010101
 	AH = 00000000
@@ -122,4 +149,5 @@
 	Display_X = 11001000
 	Display_Y = 01101110
 	Display_Z = 11011010
+	Display_Error = 11001110
  
