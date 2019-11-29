@@ -34,6 +34,7 @@
 	TICKS_PER_SEC = CPU_FREQ / (256 * 1024)
 
 	DECISION_LIMIT = 2 * TICKS_PER_SEC / 10 ; 200ms
+	MULTIPLIER = 2
 	
 ;;; Timer1 capture interrupt is used to record the length of button
 ;;; presses and button releases. 
@@ -242,16 +243,33 @@ short_press:
 
 	ldi r22, 0b00000001
 
+
+;r22 holds button press
+;r21 holds amount of times button has been pressed
+;MULTIPLIER holds 2
+;r24 holds amount of shifts need to be done
+;r0 holds result of multiplication
 	
 1:	cpi r21, 0b00000000
-	breq skipshift ; skip shifting if multiplier is 0
-	mul r22, r21 ; multiply press value in r22 by multiplier in r21
-	eor r23, r0 ; xor low byte of product into encoded input r23
+	mul r21, MULTIPLIER
+	mov r24, r0
+	breq leftshift ; skip shifting if multiplier is 0
+	;mul r22, r21 ; multiply press value in r22 by multiplier in r21
+	inc r21
+	eor r23, r22 ; xor low byte of product into encoded input r23
 
-skipshift:	
-	inc r21
-	inc r21
-	pop r16
-	clr r19			; clear overflow flag in case it was set
+;skipshift:	
+;	inc r21
+;	inc r21
+;	pop r16
+;	clr r19			; clear overflow flag in case it was set
+;	ret
+
+leftshift:
+	lsl r22 
+	dec r24
+	cpi r24, 0b00000000
+	brne leftshift
 	ret
+
 
