@@ -24,7 +24,7 @@ shift_n_store:
 	MOV R22, R30
 	LSR R30
 	MOV R23, R30
-	JMP start
+	JMP start_translation
 	
 ; R23 = 00000001
 start_translation:
@@ -189,9 +189,10 @@ dashDashDotDash:
 dashDashDotDot: 
 	MOV R9, INPZ
 	JMP end
-
-	
-	
+end:
+	RET 	; im assuming when shift_n_store is called the return addres is pushed to a stack
+		; and stays there throughout the JMPs
 	
 	
 ; ammended
+; either use RET to continue the program, or use a branch
