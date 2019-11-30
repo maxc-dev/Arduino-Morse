@@ -1,0 +1,191 @@
+;Morse = . . . -
+;R30   = 01010111, 11010111
+;R21   = 00010101, 00110101
+;R22   = 00000101, 00001101
+;R23   = 00000001, 00000011
+;INPV  = 11010101
+;INPVM = - . . . <- start here R23, R22, R21...
+;R9 = stores final segment output
+
+
+
+; main subroutine, create shifted registers
+shift_n_store:
+	MOV R30, R10
+	LSR R30
+	MOV R21, R30
+	LSR R30
+	MOV R22, R30
+	LSR R30
+	MOV R23, R30
+	JMP start
+	
+; R23 = 00000001
+start_translation:
+	CPI R23, E	;0b00000001
+	BREQ dot
+	JMP dash
+	
+	
+; DOTS
+dot:
+	CPI R22, E	;0b00000001
+	MOV R9, INPE
+	BREQ end
+	CPI R22, I	;0b00000101
+	BREQ dotDot
+	JMP dotDash
+
+dotDot:
+	CPI R21, I	;0b00000101
+	MOV R9, INPI
+	BREQ end
+	CPI R21, S	;0b00010101
+	BREQ dotDotDot
+	JMP dotDotDash
+	
+dotDash:
+	CPI R21, A	;0b00000111
+	MOV R9, INPA
+	BREQ end
+	CPI R21, R	;0b00011101
+	BREQ dotDashDot
+	JMP dotDashDash
+	
+dotDashDot:
+	CPI R30, R	;0b00011101
+	MOV R9, INPR
+	BREQ end
+	JMP dotDashDotDot
+
+dotDotDot:
+	CPI R30, S	;0b00010101
+	MOV R9, INPS
+	BREQ end
+	CPI R30, H	;0b01010101
+	BREQ dotDotDotDot
+	JMP dotDotDotDash
+	
+dotDashDash:
+	CPI R30, W	;0b00011111
+	MOV R9, INPW
+	BREQ end
+	CPI R30, F	;0b01011101
+	BREQ dotDashDashDot
+	JMP dotDashDashDash
+	
+dotDotDash:
+	CPI R30, U	;0b00010111
+	MOV R9, INPU
+	BREQ end
+	JMP dotDotDotDash
+	
+dotDashDotDot:
+	MOV R9, INPL
+	JMP end
+
+dotDotDotDot:
+	MOV R9, INPH
+	JMP end
+	
+dotDotDotDash:
+	MOV R9, INPV
+	JMP end
+	
+dotDashDashDot:
+	MOV R9, INPP
+	JMP end
+	
+dotDashDashDash:
+	MOV R9, INPJ
+	JMP end
+	
+dotDotDashDot:
+	MOV R9, INPF
+	JMP end
+	
+
+	
+11010101
+; DASHES
+dash:
+	CPI R22, T	
+	MOV R9, INPT
+	BREQ end
+	CPI R22, N	
+	BREQ dashDot
+	JMP dashDash
+	
+dashDot:
+	CPI R21, N	; 00001101
+	MOV R9, INPN
+	BREQ end
+	CPI R21, K	
+	BREQ dashDotDash
+	JMP dashDotDot
+	
+dashDash:
+	CPI R21, M	
+	MOV R9, INPM
+	BREQ end
+	CPI R21, 0	
+	BREQ dashDashDash
+	JMP dashDashDot
+	
+dashDotDash:
+	CPI R30, K	
+	MOV R9, INPK
+	BREQ end
+	CPI R30, Y	
+	BREQ dashDotDashDash
+	JMP dashDotDashDot
+
+dashDotDot:
+	CPI R30, D	
+	MOV R9, INPD
+	BREQ end
+	CPI R30, X	
+	BREQ dashDotDotDash
+	JMP dashDotDotDot
+	
+dashDashDash:
+	MOV R9, INPO
+	JMP end
+	
+dashDashDot:
+	CPI R30, G	
+	MOV R9, INPG
+	BREQ end
+	CPI R30, Q	
+	BREQ dashDashDotDash
+	JMP dashDashDotDot
+	
+dashDotDashDash:
+	MOV R9, INPY
+	JMP end
+
+dashDotDashDot: 
+	MOV R9, INPC
+	JMP end
+
+dashDotDotDash:
+	MOV R9, INPX
+	JMP end
+	
+dashDotDotDot:
+	MOV R9, INPB
+	JMP end
+	
+dashDashDotDash:
+	MOV R9, INPQ
+	JMP end
+	
+dashDashDotDot: 
+	MOV R9, INPZ
+	JMP end
+
+	
+	
+	
+	
+; ammended
