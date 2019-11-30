@@ -1,5 +1,7 @@
 ////
-////// To be finished 
+////// To be finished :
+//////	requirements: change reading direction of the morse code i.e. mappings -... for V
+//////								 whereas this interprets ...- similar to actual morse
 ////
 
 ;Morse = . . . -
@@ -39,7 +41,7 @@ dot:
 	CPI R22, I	;0b00000101
 	BREQ dotDot
 	JMP dotDash
-
+;R21 = 00010101
 dotDot:
 	CPI R21, I	;0b00000101
 	MOV R9, INPI
@@ -55,7 +57,7 @@ dotDash:
 	CPI R21, R	;0b00011101
 	BREQ dotDashDot
 	JMP dotDashDash
-	
+;R30 = 01010111	
 dotDashDot:
 	CPI R30, R	;0b00011101
 	MOV R9, INPR
