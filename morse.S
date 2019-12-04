@@ -74,7 +74,6 @@ main:
 	out DDRD, r16
 	mov r20, r16		; store mask for later use
 	out PORTD, r20 		; turn LEDs off as 1 = off
-	clr r21             ; clear counter ready for use
 	
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
@@ -101,9 +100,9 @@ main:
 
 	sei			; enable interrupts globally.
 
-fourE4:	rjmp fourE4 		; do nothing :-) just wait for the
-				; interrupts to occur -- forever.
-	;; end of setup
+fourE4: rjmp fourE4
+		
+
 
 ;;; This interrupt service routine is currently called whenever timer1 has
 ;;; an overflow, ie when more than 4s have elapses since the last button release. 
@@ -156,7 +155,6 @@ awaiting_press:
 	.global timer1_cpt_isr
 
 timer1_cpt_isr:
-
 	push r8
 
 	in r8, SREG 		; save the status register.
@@ -235,41 +233,29 @@ released:
 	brcs short_press		; if it is shorter jump to label short
 	
 long_press:
-	ldi r22, 0b00000011 
-
+	ldi r22, 0b00000011
 	rjmp 1f
 
 short_press:
-
 	ldi r22, 0b00000001
-
-
-;r22 holds button press
-;r21 holds amount of times button has been pressed
-;MULTIPLIER holds 2
-;r24 holds amount of shifts need to be done
-;r0 holds result of multiplication
 	
-1:	cpi r21, 0b00000000
-	mul r21, MULTIPLIER
+1:	mul r21, MULTIPLIER
 	mov r24, r0
-	breq leftshift ; skip shifting if multiplier is 0
-	;mul r22, r21 ; multiply press value in r22 by multiplier in r21
+	cpi r24, 0b00000000
+	brne leftshift ; skip shifting if multiplier is 0
+
+come_back:
 	inc r21
 	eor r23, r22 ; xor low byte of product into encoded input r23
 
-;skipshift:	
-;	inc r21
-;	inc r21
-;	pop r16
-;	clr r19			; clear overflow flag in case it was set
-;	ret
+	out PORTD, r23		
+	pop r16
+	clr r19			; clear overflow flag in case it was set
+	ret
 
 leftshift:
 	lsl r22 
 	dec r24
 	cpi r24, 0b00000000
 	brne leftshift
-	ret
-
-
+	rjmp come_back
