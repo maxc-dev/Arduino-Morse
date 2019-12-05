@@ -1,0 +1,6 @@
+branch_a:
+	eor DISPLAY_A, r20
+	out PORTD, DISPLAY_A
+
+	cp r23, INPA
+	breq branch_a
