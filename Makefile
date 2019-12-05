@@ -1,6 +1,6 @@
 # Version: $Id: Makefile 971 2011-11-22 23:34:05Z ag0015 $
 
-PRG = group 2830
+PRG = group_2830
 OBJ = $(PRG).o init.o
 
 MCU_TARGET = atmega328p
