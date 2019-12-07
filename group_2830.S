@@ -61,6 +61,18 @@
 	LEDF = 5
 	LEDG = 6
 
+	LEDERROR = 0b00110000
+
+	LENGTH = 26
+
+	
+	clr r1
+	clr r22
+	clr r24
+	clr r25
+	clr r29
+	ldi r21, 0b00000000
+
 ;;; this is the entry point to the user code, called from init.S. We
 ;;; do the setup of ports, timer and interrupts, then we go to an
 ;;; eternal loop because all the work is done in the interrupt service
@@ -68,14 +80,15 @@
 
 	.section .text
 	.global main
-main:	
+main:
 	;; make these pins output:
 	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG)
 	out DDRD, r16
-	mov r20, r16		; store mask for later use
-	out PORTD, r20 		; turn LEDs off as 1 = off
-	clr r21 ; clear counter
-	
+	mov r20, r16 ; store mask for later use	ldi r29, 0b00011011
+	out PORTD, r16
+	clr r23
+	clr r29
+	;; out PORTD, r16
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
 				; button is 1, depressed button read as 0.
@@ -101,9 +114,9 @@ main:
 
 	sei			; enable interrupts globally.
 
-fourE4: rjmp fourE4
-		
-
+fourE4:	rjmp fourE4 		; do nothing :-) just wait for the
+				; interrupts to occur -- forever.
+	;; end of setup
 
 ;;; This interrupt service routine is currently called whenever timer1 has
 ;;; an overflow, ie when more than 4s have elapses since the last button release. 
@@ -131,12 +144,13 @@ awaiting_release:
 				; timer overflow has occured.
 	rjmp 1f
 
-awaiting_press:	
+awaiting_press:
+	mov r21, r23
+	lsl r21
+	out PORTD, r21
 	;; if we are waiting for a button press, then more time than
 	;; 4s has elasped since the last release -- in this case
-	;; we switch the yellow led on and the others off.
-		 
-	out PORTD, r20		
+	;; we switch the yellow led on and the others off.		
 	
 1:	pop r16
 	out SREG, r16 		; restore status register
@@ -156,6 +170,7 @@ awaiting_press:
 	.global timer1_cpt_isr
 
 timer1_cpt_isr:
+
 	push r8
 
 	in r8, SREG 		; save the status register.
@@ -234,32 +249,76 @@ released:
 	brcs short_press		; if it is shorter jump to label short
 	
 long_press:
-	ldi r22, 0b00000011
+	ldi r22, 0b00000011 
+
 	rjmp 1f
 
 short_press:
 	ldi r22, 0b00000001
+
+
+;r22 holds button press
+;r21 holds amount of times button has been pressed
+;MULTIPLIER holds 2
+;r24 holds amount of shifts need to be done
+;r0 holds result of multiplication
 	
-1:	mul r21, MULTIPLIER
-	mov r24, r0
-	tst r21
-	brne leftshift ; skip shifting if first time
-
-come_back:
-	inc r21
-	eor r23, r22 ; xor low byte of product into encoded input r23
-
-	ldi r16, _BV(LEDA) ;test code is reaching here
-	eor r16, r20
-	out PORTD, r16
-
+1:	
+	;mov r24, r29	
+	;mul r24, MULTIPLIER
+	;movw r24, r0
+	add r24, r29
+	add r24, r29		
+	tst r29	    
+	brne leftshift ; skip shifting if multiplier is 0
+	inc r29
+	or r23, r22
 	pop r16
-	clr r19			; clear overflow flag in case it was set
+	clr r19
 	ret
+
+;skipshift:	
+;	inc r21
+;	inc r21
+;	pop r16
+;	clr r19			; clear overflow flag in case it was set
+;	ret
 
 leftshift:
 	lsl r22 
 	dec r24
-	cpi r24, 0b00000000
+	tst r24
 	brne leftshift
-	rjmp come_back
+	inc r29
+	or r23, r22
+	pop r16
+	clr r19
+	ret
+
+end_code:
+	ldi r30, lo8(ButtonBits)
+	ldi r31, hi8(ButtonBits)
+	clr r21
+	clr r26
+	rjmp loop_bytes
+	ret
+
+loop_bytes:
+	lpm r25, Z+
+	cp r25, r23
+	breq display_letter
+	inc r26
+	cp r26, LENGTH
+	brne loop_bytes
+	lds r25, LEDERROR
+	ret
+
+display_letter:
+	ldi 30, lo8(SegmentBits)
+	ldi 31, hi8(SegmentBits)
+	add r30, r26
+	adc r31, r1
+	lpm r25, Z
+	eor r25, r20
+	ret
+	
