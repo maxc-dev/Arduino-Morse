@@ -61,18 +61,12 @@
 	LEDF = 5
 	LEDG = 6
 
-	LEDERROR = 0b00110000
+	LEDERROR = 0b10100000
 
-	LENGTH = 26
+	LENGTH = 27
 
+	ldi r21, 1
 	
-	clr r1
-	clr r22
-	clr r24
-	clr r25
-	clr r29
-	ldi r21, 0b00000000
-
 ;;; this is the entry point to the user code, called from init.S. We
 ;;; do the setup of ports, timer and interrupts, then we go to an
 ;;; eternal loop because all the work is done in the interrupt service
@@ -84,11 +78,17 @@ main:
 	;; make these pins output:
 	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG)
 	out DDRD, r16
-	mov r20, r16 ; store mask for later use	ldi r29, 0b00011011
-	out PORTD, r16
-	clr r23
-	clr r29
-	;; out PORTD, r16
+	mov r20, r16 ; store mask for later use
+	lds r25, LEDERROR
+	out PORTD, r25
+	clr 22
+	clr 23
+	clr 24
+	clr 25
+	clr 26
+	clr 29
+	clr 30
+	clr 31
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
 				; button is 1, depressed button read as 0.
@@ -114,7 +114,9 @@ main:
 
 	sei			; enable interrupts globally.
 
-fourE4:	rjmp fourE4 		; do nothing :-) just wait for the
+fourE4:	
+	out PORTD, r25
+	rjmp fourE4 		; do nothing :-) just wait for the
 				; interrupts to occur -- forever.
 	;; end of setup
 
@@ -145,9 +147,7 @@ awaiting_release:
 	rjmp 1f
 
 awaiting_press:
-	mov r21, r23
-	lsl r21
-	out PORTD, r21
+	out PORTD, r25
 	;; if we are waiting for a button press, then more time than
 	;; 4s has elasped since the last release -- in this case
 	;; we switch the yellow led on and the others off.		
@@ -264,9 +264,6 @@ short_press:
 ;r0 holds result of multiplication
 	
 1:	
-	;mov r24, r29	
-	;mul r24, MULTIPLIER
-	;movw r24, r0
 	add r24, r29
 	add r24, r29		
 	tst r29	    
@@ -277,13 +274,6 @@ short_press:
 	clr r19
 	ret
 
-;skipshift:	
-;	inc r21
-;	inc r21
-;	pop r16
-;	clr r19			; clear overflow flag in case it was set
-;	ret
-
 leftshift:
 	lsl r22 
 	dec r24
@@ -291,34 +281,48 @@ leftshift:
 	brne leftshift
 	inc r29
 	or r23, r22
+	cpi r29, 4
+	breq end_code
 	pop r16
 	clr r19
 	ret
 
 end_code:
+	push r30
+	push r31
 	ldi r30, lo8(ButtonBits)
 	ldi r31, hi8(ButtonBits)
-	clr r21
-	clr r26
 	rjmp loop_bytes
-	ret
 
 loop_bytes:
-	lpm r25, Z+
-	cp r25, r23
-	breq display_letter
+	lpm r28, Z+
 	inc r26
-	cp r26, LENGTH
+	cp r28, r23
+	breq display_letter
+	cpi r26, 26
 	brne loop_bytes
-	lds r25, LEDERROR
-	ret
+	ldi r25, 0b10111110
+	rjmp actual_end
 
 display_letter:
-	ldi 30, lo8(SegmentBits)
-	ldi 31, hi8(SegmentBits)
+	ldi r30, lo8(SegmentBits)
+	ldi r31, hi8(SegmentBits)
+	dec r26
 	add r30, r26
-	adc r31, r1
 	lpm r25, Z
 	eor r25, r20
+	;mov r25, r24
+	;ldi r25, 0b10001000
+	pop r30
+	pop r31
+
+actual_end:
+	clr r28
+	clr r23
+	clr r26
+	clr r24
+	pop r16
+	clr r19			
 	ret
+	
 	
