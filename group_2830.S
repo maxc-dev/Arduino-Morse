@@ -64,8 +64,6 @@
 	LEDERROR = 0b10100000
 
 	LENGTH = 27
-
-	ldi r21, 1
 	
 ;;; this is the entry point to the user code, called from init.S. We
 ;;; do the setup of ports, timer and interrupts, then we go to an
@@ -108,6 +106,7 @@ main:
 	;; enable noise canceller, set prescaler to 1024, and start
 	;; timer in normal mode, [ATmega328p] section 12.11.2 (p128).
 	ldi r16,  _BV(ICNC1) | _BV(CS12) | _BV(CS10)
+
 	sts TCCR1B, r16
 
 	clr r19			; reset overflow flag to defined state
@@ -115,8 +114,10 @@ main:
 	sei			; enable interrupts globally.
 
 fourE4:	
-	out PORTD, r25
-	rjmp fourE4 		; do nothing :-) just wait for the
+	clr r1
+	clr r2
+	ldi r21, 33
+	rjmp inner_timer	; do nothing :-) just wait for the
 				; interrupts to occur -- forever.
 	;; end of setup
 
@@ -127,6 +128,8 @@ fourE4:
 				; definition in init.S
 
 ;;; This is the start of the interrupt service routine:
+
+;;THIS IS CALLED AFTER 4s OF NO PRESS, CAN WE CHANGE IT TO 400ms of NO PRESS??????
 timer1_ovr_isr:			
 
 	push r16	
@@ -264,6 +267,9 @@ short_press:
 ;r0 holds result of multiplication
 	
 1:	
+	clr r1
+	clr r2
+	ldi r21, 33
 	add r24, r29
 	add r24, r29		
 	tst r29	    
@@ -279,15 +285,13 @@ leftshift:
 	dec r24
 	tst r24
 	brne leftshift
-	inc r29
+	inc r29	
 	or r23, r22
-	cpi r29, 4
-	breq end_code
 	pop r16
 	clr r19
 	ret
 
-end_code:
+end_timer:
 	push r30
 	push r31
 	ldi r30, lo8(ButtonBits)
@@ -311,8 +315,6 @@ display_letter:
 	add r30, r26
 	lpm r25, Z
 	eor r25, r20
-	;mov r25, r24
-	;ldi r25, 0b10001000
 	pop r30
 	pop r31
 
@@ -321,8 +323,29 @@ actual_end:
 	clr r23
 	clr r26
 	clr r24
+	clr r29
+	clr r22
 	pop r16
 	clr r19			
-	ret
+	rjmp fourE4
+;just removed pop and clr
+
+outer_timer:
+	clr r1
+middle_timer:
+	clr r2
+inner_timer:
+	dec r2
+	brne inner_timer
+
+	dec r1
+	brne middle_timer
+
+	dec r21
+	brne outer_timer
+
+	rjmp end_code
+
+
 	
 	
