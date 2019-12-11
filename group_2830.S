@@ -61,9 +61,16 @@
 	LEDF = 5
 	LEDG = 6
 
-	LEDERROR = 0b10100000
-
 	LENGTH = 27
+	TIME = 170
+	clr 22
+	clr 23
+	clr 24
+	clr 25
+	clr 26
+	clr 29
+	clr 30
+	clr 31
 	
 ;;; this is the entry point to the user code, called from init.S. We
 ;;; do the setup of ports, timer and interrupts, then we go to an
@@ -76,17 +83,9 @@ main:
 	;; make these pins output:
 	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG)
 	out DDRD, r16
+	;ldi r18, 0b00000100
 	mov r20, r16 ; store mask for later use
-	lds r25, LEDERROR
 	out PORTD, r25
-	clr 22
-	clr 23
-	clr 24
-	clr 25
-	clr 26
-	clr 29
-	clr 30
-	clr 31
 	;; setup for the button, DDRB0 is automatically an input.
 	sbi PORTB, BUTTON 	; switch on the pull-up. Released
 				; button is 1, depressed button read as 0.
@@ -116,7 +115,7 @@ main:
 fourE4:	
 	clr r1
 	clr r2
-	ldi r21, 33
+	ldi r21, TIME
 	rjmp inner_timer	; do nothing :-) just wait for the
 				; interrupts to occur -- forever.
 	;; end of setup
@@ -269,7 +268,7 @@ short_press:
 1:	
 	clr r1
 	clr r2
-	ldi r21, 33
+	ldi r21, TIME
 	add r24, r29
 	add r24, r29		
 	tst r29	    
@@ -300,9 +299,9 @@ end_timer:
 
 loop_bytes:
 	lpm r28, Z+
-	inc r26
 	cp r28, r23
 	breq display_letter
+	inc r26
 	cpi r26, 26
 	brne loop_bytes
 	ldi r25, 0b10111110
@@ -311,7 +310,6 @@ loop_bytes:
 display_letter:
 	ldi r30, lo8(SegmentBits)
 	ldi r31, hi8(SegmentBits)
-	dec r26
 	add r30, r26
 	lpm r25, Z
 	eor r25, r20
@@ -325,9 +323,9 @@ actual_end:
 	clr r24
 	clr r29
 	clr r22
-	pop r16
-	clr r19			
-	rjmp fourE4
+	;pop r16
+	;clr r19			
+	ldi r21, TIME
 ;just removed pop and clr
 
 outer_timer:
@@ -343,8 +341,13 @@ inner_timer:
 
 	dec r21
 	brne outer_timer
+	
+	;eor r18, r20
+	;out PORTB, r18
+	rjmp end_timer
 
-	rjmp end_code
+
+
 
 
 	
