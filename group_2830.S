@@ -1,58 +1,17 @@
-;;;  timing.s 21/11/12 (A.Gruning)J.Y.Clark. C. Cheong
-;;;  This lab material and corresponding solutions are 
-;;;  released under the Creative Commons Share-Alike 
-;;;  Non-Commercial Licence at 
-;;;  http://creativecommons.org/licenses/by-nc-sa/3.0/
-;;;  (C) Andre Gruning, 2011. Developed for COM1031 in 2011.
-;;;  (C) Jonathan Clark. 2012. Adapted for COM1031 in 2012.
-;;;  (C) Clive Cheong. 2013. Adapted for COM1031 in 2013.
-;;;	REFERENCES:
-;;;	[ATmega]: General 8-bit Atmel Microcontroller document 
-;;;  
-;;;  [ATmega328p]: Specific ATmega328p document (quite large!)
-;;;  downloadable from
-;;;  www.atmel.com/Images/doc7810.pdf
-;;;  [AVR]: Instruction Set Manual
-;;;  downloadable from
-;;;  www.atmel.com/Images/doc0856.pdf
-;;;
-
-
-;;; To understand the code read the ATmega328p technical documentation
-;;; [328] in conjunction with the instruction manual [AVR]
-;;;
-;;; Basis of timing:
-;;; First of all the timer prescaler is set to 1024, ie one timer tick
-;;; is 1024 CPU clock ticks. Then we only look at the high byte of the
-;;; 16 bit timer1, which is the basis for all timing. One tick at the
-;;; high byte is 1024*256 CPU clock ticks. With a CPU clock of 16MHz,
-;;; ie 16,000,000 CPU clock ticks per second, this means one tick in
-;;; the high byte of timer1 corresponds to 256*1024 / 16.000.000 Hz =
-;;; 16ms. So 16ms is the basis of all our timings, about 61 ticks per second:
-
-	CPU_FREQ = 16000000
-	TICKS_PER_SEC = CPU_FREQ / (256 * 1024)
-
-	DECISION_LIMIT = 2 * TICKS_PER_SEC / 10 ; 200ms
-	MULTIPLIER = 2
 	
-;;; Timer1 capture interrupt is used to record the length of button
-;;; presses and button releases. 
-;;;
-;;; Global register use:
-;;; r19: used as a flag that indicates whether the timer has overrun its
-;;; max value while a button has been held pressed.
-	
-;;; include all port definitions
+	CPU_FREQ = 16000000 ;set cpu frequency
+	TICKS_PER_SEC = CPU_FREQ / (256 * 1024) ;set amount of times timer will increase by one in a second
+
+	DECISION_LIMIT = 2 * TICKS_PER_SEC / 10 ; set time between a dot and a dash to be 200ms
+
 #define __SFR_OFFSET 0
-#include <avr/io.h> 
+#include <avr/io.h> ;make sure avr is used
+#include "mappings.S" ;add access to mappings
 
-;;;include display mappings
-#include "mappings.S"
-
-;;; Button is connected to PIN 8, PORTB, Bit 0, because that doubles as the ICP1 for timer1.
+;Set input button to 1st pin on port b
 	BUTTON = 0
-;;; LEDs on display connected to these bits of PORTD:
+
+;Set LEDs to be 2nd to 7th pin on port d
 	LEDA = 7	
 	LEDB = 1
 	LEDC = 2
@@ -61,113 +20,82 @@
 	LEDF = 5
 	LEDG = 6
 
-	LENGTH = 27
-	TIME = 170
-	clr 22
-	clr 23
-	clr 24
-	clr 25
-	clr 26
-	clr 29
-	clr 30
-	clr 31
-	
-;;; this is the entry point to the user code, called from init.S. We
-;;; do the setup of ports, timer and interrupts, then we go to an
-;;; eternal loop because all the work is done in the interrupt service
-;;; routines. 
+;Set timer to be 256*256*3*170 clock ticks (about 2 seconds)
+	TIME = 33
+
+;Make sure all important registers are cleared
+	clr 22 ;register 22 holds the current button press (dash/dot)
+	clr 23 ;register 23 holds the conbined button presses of up to 4 presses
+	clr 24 ;register 24 holds the amount of times the current button press needs to be left shifted in order to be correctly conbined with the other button presses
+	clr 25 ;register 25 holds the displayed letter
+	clr 26 ;register 26 holds the index of the letter in SegmentBits to be displayed
+	clr 29 ;resister 29 holds the amount of times the button has been pressed
+	clr 30 ;resgister 30 holds the current index of the table
+	clr 31 ;register 31 holds the end of the table
 
 	.section .text
 	.global main
 main:
-	;; make these pins output:
-	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG)
-	out DDRD, r16
-	;ldi r18, 0b00000100
-	mov r20, r16 ; store mask for later use
-	out PORTD, r25
-	;; setup for the button, DDRB0 is automatically an input.
-	sbi PORTB, BUTTON 	; switch on the pull-up. Released
-				; button is 1, depressed button read as 0.
+	
+	ldi r16, _BV(LEDA) | _BV(LEDB) | _BV(LEDC) | _BV(LEDD) | _BV(LEDE) | _BV(LEDF) | _BV(LEDG) ;load each pin for the display
+	out DDRD, r16 ;make each pin an output
+	mov r20, r16 ;move r16 to r20 to make r20 a mask of the pins to be used in exclusive or functions
+	
+	mov r25, r20 ;make r25 all LEDs on by default
+	out PORTD, r25 ;display r25
 
-	;; set up the timer ([ATmega328p], Section 15.11.1 (p126))
+	sbi PORTB, BUTTON ;Set button to be an input
+
 
 	clr r16
-	sts TCCR1A, r16 	; setting timer output mode: no output
-				; pin used, normal counting up. 
+	sts TCCR1A, r16 ;set timer mode
 
-	;; enable input capture interrupt (to time button presses) and
-	;; timer overflow interrupt (the time-out to switch on the
-	;; yellow LED:
 	ldi r16, _BV(ICIE1) | _BV(TOIE1)
-	sts TIMSK1, r16
+	sts TIMSK1, r16 ;Set input events
 
-	;; enable noise canceller, set prescaler to 1024, and start
-	;; timer in normal mode, [ATmega328p] section 12.11.2 (p128).
-	ldi r16,  _BV(ICNC1) | _BV(CS12) | _BV(CS10)
+	ldi r16,  _BV(ICNC1) | _BV(CS12) | _BV(CS10) ;Set scaler, increment and noise canceller
 
-	sts TCCR1B, r16
+	sts TCCR1B, r16 ;Make interrupt
 
-	clr r19			; reset overflow flag to defined state
+	clr r19			
 
-	sei			; enable interrupts globally.
+	sei ;start interrupt		
 
 fourE4:	
 	clr r1
 	clr r2
-	ldi r21, TIME
-	rjmp inner_timer	; do nothing :-) just wait for the
-				; interrupts to occur -- forever.
+	ldi r21, TIME ;clear all registers used for timer
+	rjmp inner_timer ;run timer constantly
 	;; end of setup
 
-;;; This interrupt service routine is currently called whenever timer1 has
-;;; an overflow, ie when more than 4s have elapses since the last button release. 
 	
-	.global timer1_ovr_isr  ; export symbol to overwrite weak
-				; definition in init.S
+	.global timer1_ovr_isr  
 
-;;; This is the start of the interrupt service routine:
 
-;;THIS IS CALLED AFTER 4s OF NO PRESS, CAN WE CHANGE IT TO 400ms of NO PRESS??????
 timer1_ovr_isr:			
 
 	push r16	
-	in r16, SREG		; save the status register.
+	in r16, SREG		
 	push r16
 
-	;; check whether we are waiting for a button press or release:
 	lds r16, TCCR1B
-	sbrs r16, ICES1 	; skip if waiting for positive edge (ie for button release)
+	sbrs r16, ICES1 	
 	rjmp awaiting_press
 
 awaiting_release:
-	;;  make sure also an overly long press is always recognised
-	;;  as a long press, irrespective of a timer overrun:
 
-	ser r19 		; using r19 as a flag to indicate a
-				; timer overflow has occured.
+	ser r19 		
 	rjmp 1f
 
 awaiting_press:
-	out PORTD, r25
-	;; if we are waiting for a button press, then more time than
-	;; 4s has elasped since the last release -- in this case
-	;; we switch the yellow led on and the others off.		
+	out PORTD, r25		
 	
 1:	pop r16
-	out SREG, r16 		; restore status register
+	out SREG, r16 	
 	pop r16
 	
 	reti
 
-
-;;; This interrupt service routine times the duration of button
-;;; presses. It is also involved in timing button releases as it
-;;; always resets timer1 when called.
-;;; It is called whenever the signal at ICP1 (PORTB0) changes in a
-;;; certain direction. If we are called for a negative edge (button
-;;; has just been depressed), we go on waiting for a positive edge
-;;; (button will be released) and vice-versa.
 	
 	.global timer1_cpt_isr
 
@@ -215,6 +143,9 @@ timer1_cpt_isr:
 
 	
 pressed:
+	;clr r1
+	;clr, r2
+	;ldi r21, TIME
 	;; call depressed ; more code to execute, perhaps for the coursework?
 	ori r17, _BV(ICES1)	; next time detect positive edge, ie a
 				; button release.
@@ -251,82 +182,90 @@ released:
 	brcs short_press		; if it is shorter jump to label short
 	
 long_press:
-	ldi r22, 0b00000011 
+	ldi r22, 0b00000011 ;If dash is done, load 3 into r22
 
 	rjmp 1f
 
 short_press:
-	ldi r22, 0b00000001
-
-
-;r22 holds button press
-;r21 holds amount of times button has been pressed
-;MULTIPLIER holds 2
-;r24 holds amount of shifts need to be done
-;r0 holds result of multiplication
+	ldi r22, 0b00000001 ;If dot is done, load 1 into r22
 	
 1:	
 	clr r1
 	clr r2
-	ldi r21, TIME
+	ldi r21, TIME ;reset r1, r2 and r21 to make the timer reset 
+
 	add r24, r29
-	add r24, r29		
-	tst r29	    
-	brne leftshift ; skip shifting if multiplier is 0
-	inc r29
-	or r23, r22
-	pop r16
-	clr r19
-	ret
+	add r24, r29 ;multiply r29 by 2 and load it into r24
+
+	tst r29	    ;check to see if r29 is 0
+	brne leftshift ;if r29 is not 0 then branch to leftshift the bits in r22
+
+	inc r29 ; increase r29 to show the amount of times the button has been pressed
+
+	or r23, r22 ;combine r22 with r23 to make r23 hold the content of upto the first 4 clicks
+
+	pop r16 ;restore r16
+	clr r19 ; clear r19
+	ret ;return from interrupt
 
 leftshift:
-	lsl r22 
-	dec r24
-	tst r24
-	brne leftshift
-	inc r29	
-	or r23, r22
-	pop r16
-	clr r19
-	ret
+	lsl r22 ;do a logical left shift on r22
+
+	dec r24 ;decrease r24 by one
+
+	tst r24 ; check if r24 is 0
+	brne leftshift ;if r24 is not 0 then keep looping leftshift until it is
+
+	inc r29	; increase r29 to show the amount of button presses
+
+	or r23, r22 ; combine r22 and r23
+
+	pop r16 ;restore r16
+	clr r19 ;clear r19
+	ret ;return from interrupt
 
 end_timer:
-	push r30
-	push r31
+	push r30 
+	push r31 ;push the pointers of the last table used
+
 	ldi r30, lo8(ButtonBits)
-	ldi r31, hi8(ButtonBits)
-	rjmp loop_bytes
+	ldi r31, hi8(ButtonBits) ;load  the pointers of ButtonsBits table
+	rjmp loop_bytes ;jump to loop_bytes
 
 loop_bytes:
-	lpm r28, Z+
-	cp r28, r23
-	breq display_letter
-	inc r26
-	cpi r26, 26
-	brne loop_bytes
-	ldi r25, 0b10111110
-	rjmp actual_end
+	cpi r23, 0
+	breq actual_end
+	lpm r28, Z+ ;get the content of ButtonBits at index Z into r28 and then add 1 to Z 
+
+	cp r28, r23 ;compare r28 to the button presses
+	breq display_letter ;if the content of the table index is equal to the button presses then branch to display_letter
+
+	inc r26 ;increase r26 to show the current index that is being looked at
+
+	cpi r26, 26 ;check if we are at the end of the list 
+
+	brne loop_bytes ;if not then keep looping along the list
+	ldi r25, 0b10111110 ;if we are at the end of the list and havent branched to display letter then the button presses do not match to nay morse code so an error symbol is displayed
+	rjmp actual_end ;jump to end of code
 
 display_letter:
-	ldi r30, lo8(SegmentBits)
-	ldi r31, hi8(SegmentBits)
-	add r30, r26
-	lpm r25, Z
-	eor r25, r20
-	pop r30
-	pop r31
+	ldi r30, lo8(SegmentBits) 
+	ldi r31, hi8(SegmentBits) ;load pointers of SegmentBits table
+	add r30, r26 ;change current index to index held in r26
+	lpm r25, Z ;load current index into r25
+	eor r25, r20 ;do an exlusive or to reverse the bits so they show properly on the display
+	pop r30 
+	pop r31 ;restore old table pointers
 
 actual_end:
-	clr r28
-	clr r23
-	clr r26
-	clr r24
-	clr r29
-	clr r22
-	;pop r16
-	;clr r19			
-	ldi r21, TIME
-;just removed pop and clr
+	;clr r28 
+	clr r23 ;clear register holding button presses
+	clr r26 ;clear register holding current bale index
+	clr r24 ;clear register that holds amount of times the button press needs to be shifted left
+	clr r29 ;clear amount of times the button has been pressed
+	;clr r22 
+	out PORTD, r25
+	ldi r21, TIME ;reset timer
 
 outer_timer:
 	clr r1
@@ -334,17 +273,15 @@ middle_timer:
 	clr r2
 inner_timer:
 	dec r2
-	brne inner_timer
+	brne inner_timer ;keep decreasing r2 until 0
 
-	dec r1
+	dec r1 ;keep decreasing r1 until 0
 	brne middle_timer
 
-	dec r21
+	dec r21 ;keep decreasing r21 until xero
 	brne outer_timer
-	
-	;eor r18, r20
-	;out PORTB, r18
-	rjmp end_timer
+
+	rjmp end_timer ;jump to end_timer
 
 
 
