@@ -225,6 +225,9 @@ leftshift:
 	ret ;return from interrupt
 
 end_timer:
+	cpi r29, 4
+	brsh error_display ;if more than 4 presses have been done then go to 
+			   ;error_display as there is no morse code that is larger than 4 presses
 	push r30 
 	push r31 ;push the pointers of the last table used
 
@@ -234,7 +237,7 @@ end_timer:
 
 loop_bytes:
 	cpi r23, 0
-	breq actual_end
+	breq actual_end ;if r23 holds no presses then dont update the display
 	lpm r28, Z+ ;get the content of ButtonBits at index Z into r28 and then add 1 to Z 
 
 	cp r28, r23 ;compare r28 to the button presses
@@ -245,8 +248,7 @@ loop_bytes:
 	cpi r26, 26 ;check if we are at the end of the list 
 
 	brne loop_bytes ;if not then keep looping along the list
-	ldi r25, 0b10111110 ;if we are at the end of the list and havent branched to display letter then the button presses do not match to nay morse code so an error symbol is displayed
-	rjmp actual_end ;jump to end of code
+	rjmp error_display ;jump to error code since no letters matched
 
 display_letter:
 	ldi r30, lo8(SegmentBits) 
@@ -256,6 +258,10 @@ display_letter:
 	eor r25, r20 ;do an exlusive or to reverse the bits so they show properly on the display
 	pop r30 
 	pop r31 ;restore old table pointers
+	rjmp actual_end
+
+error_display:
+	ldi r25, 0b10111110 ;binary value to dislay error symbol
 
 actual_end:
 	;clr r28 
