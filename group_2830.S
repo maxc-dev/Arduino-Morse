@@ -225,7 +225,7 @@ leftshift:
 	ret ;return from interrupt
 
 end_timer:
-	cpi r29, 4
+	cpi r29, 5
 	brsh error_display ;if more than 4 presses have been done then go to 
 			   ;error_display as there is no morse code that is larger than 4 presses
 	push r30 
