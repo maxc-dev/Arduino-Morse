@@ -20,7 +20,7 @@
 	LEDF = 5
 	LEDG = 6
 
-;Set timer to be 256*256*3*170 clock ticks (about 2 seconds)
+;Set timer to be 256*256*3*33 clock ticks (about 400ms)
 	TIME = 33
 
 ;Make sure all important registers are cleared
@@ -71,7 +71,7 @@ fourE4:
 	
 	.global timer1_ovr_isr  
 
-
+;This is run when the input interupt is overflown then awaiting press is run
 timer1_ovr_isr:			
 
 	push r16	
@@ -84,13 +84,13 @@ timer1_ovr_isr:
 
 awaiting_release:
 
-	ser r19 		
+	ser r19 	;ret r19 to 255	
 	rjmp 1f
 
 awaiting_press:
-	out PORTD, r25		
+	out PORTD, r25		;output r25 to seven segment display
 	
-1:	pop r16
+1:	pop r16			
 	out SREG, r16 	
 	pop r16
 	
@@ -103,83 +103,66 @@ timer1_cpt_isr:
 
 	push r8
 
-	in r8, SREG 		; save the status register.
+	in r8, SREG 		; load input of SREG to r8
 	push r8
 
-	lds r8, ICR1L		; get the timer count when the capture event happened.
-	lds r8, ICR1H           ; we discard the low part, only
-				; interested in the high part, but
-				; reading low byte is necessary to get
-				; a correct high byte in ICR1H, see
-				; documentation [ATmega328p] Section 15.11.7 p131 
+	lds r8, ICR1L		
+	lds r8, ICR1H           ;read high byte of status register
+	
 	push r17				
 
-	;; debounce button:
 
-	mov r17,r19		;  If there is no timer-overflow (ie a
-				;  very long button press and
-	or r17,r8		;  ICR1H is still zero, then 
-				;  less than 16ms have elapsed since
-				;  last release or press
-	breq debounce		;  and we do nothing
+	mov r17,r19		
+	or r17,r8		;do logical or on r17 against status reg
+	breq debounce		
 
 	clr r17
-	sts TCNT1H, r17 	; reset timer, first writing the high byte to the latch
-	sts TCNT1L, r17		; then the low byte -- Section 16.3 of [328] again.
+	sts TCNT1H, r17 
+	sts TCNT1L, r17		; set timer to 0 again
 
-	;; check whether we were looking for a positive or a negative edge:
-	lds r17, TCCR1B
-	sbrs  r17, ICES1	; skip next instruction if positive edge dedection.
+	lds r17, TCCR1B 	;check if button is pressed
+	sbrs  r17, ICES1	;skip next line if not pressed
 	
-	rjmp pressed		; we have a negative edge ie button
-				; has been pressed
+	rjmp pressed		;ump to pressed if button is pressed
 
-	;; positive edge, button has been released
 	rcall released
 
-	andi r17, ~(_BV(ICES1)) ; we have had positive edge, so next
-				; time looking for negative edge
+	andi r17, ~(_BV(ICES1)) 
 	rjmp end_isr
 
+set_display_off:
+	ldi r25, 0b11111110	;set r25 to 255
+	out PORTD, r25		;output to seven segment display so it shows nothing
+	rjmp pressed_second	
 	
 pressed:
-	;clr r1
-	;clr, r2
-	;ldi r21, TIME
-	;; call depressed ; more code to execute, perhaps for the coursework?
-	ori r17, _BV(ICES1)	; next time detect positive edge, ie a
-				; button release.
+	cpi r29, 0	;check if this is the first button press
+	breq set_display_off
+
+pressed_second:
+	ori r17, _BV(ICES1)	
 
 end_isr:
-	sts TCCR1B, r17 	; write r17 to TCCR1B to activate the
-				; change in edge detection.
+	sts TCCR1B, r17 	
 	
 debounce:
 	pop r17
 	pop r8
-	out SREG, r8		; restore status register
+	out SREG, r8	
 	pop r8
 
 	reti
-
-;;; This subroutine handles the detection of a button release (ie the
-;;; end of a button press)
-;;; It expects the durations of button presses in 16ms ticks in r8
 
 released:
 
 	push r16
 
-	tst r19 		; Did we have a timer overflow
-				; (ie more than TIMEOUT time since the
-				; last released of the button?
-	brne long_press		; if yes, then signal is a long
-				; press in any case
+	tst r19 		;check if r19 is 0
+	brne long_press		;if it isn't then there was a dash
 
-	;; is the signal longer than DECISION_LIMIT?
 	ldi r16, DECISION_LIMIT
-	cp r8,r16
-	brcs short_press		; if it is shorter jump to label short
+	cp r8,r16 		;check r8 against the time limit
+	brcs short_press	; if it is shorter then it is 
 	
 long_press:
 	ldi r22, 0b00000011 ;If dash is done, load 3 into r22
@@ -226,8 +209,7 @@ leftshift:
 
 end_timer:
 	cpi r29, 5
-	brsh error_display ;if more than 4 presses have been done then go to 
-			   ;error_display as there is no morse code that is larger than 4 presses
+	brsh error_display ;if the button has been pressed more than 4 times then  there is an error
 	push r30 
 	push r31 ;push the pointers of the last table used
 
@@ -237,7 +219,7 @@ end_timer:
 
 loop_bytes:
 	cpi r23, 0
-	breq actual_end ;if r23 holds no presses then dont update the display
+	breq actual_end
 	lpm r28, Z+ ;get the content of ButtonBits at index Z into r28 and then add 1 to Z 
 
 	cp r28, r23 ;compare r28 to the button presses
@@ -248,7 +230,7 @@ loop_bytes:
 	cpi r26, 26 ;check if we are at the end of the list 
 
 	brne loop_bytes ;if not then keep looping along the list
-	rjmp error_display ;jump to error code since no letters matched
+	rjmp error_display ;jump to end of code
 
 display_letter:
 	ldi r30, lo8(SegmentBits) 
@@ -261,15 +243,13 @@ display_letter:
 	rjmp actual_end
 
 error_display:
-	ldi r25, 0b10111110 ;binary value to dislay error symbol
+	ldi r25, 0b10111110 ;make register for seven segment display hold an error message
 
 actual_end:
-	;clr r28 
 	clr r23 ;clear register holding button presses
 	clr r26 ;clear register holding current bale index
 	clr r24 ;clear register that holds amount of times the button press needs to be shifted left
 	clr r29 ;clear amount of times the button has been pressed
-	;clr r22 
 	out PORTD, r25
 	ldi r21, TIME ;reset timer
 
