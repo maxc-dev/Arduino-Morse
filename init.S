@@ -1,4 +1,22 @@
-;;; init.S 
+;;;  init.s 25/11/12 (A.Gruning)J.Y.Clark, C. Cheong
+;;;  This lab material and corresponding solutions are 
+;;;  released under the Creative Commons Share-Alike 
+;;;  Non-Commercial Licence at 
+;;;  http://creativecommons.org/licenses/by-nc-sa/3.0/
+;;;  (C) Andre Gruning, 2011. Developed for COM1031 in 2011.
+;;;  (C) Jonathan Clark. 2012. Adapted for COM1031 in 2012.
+;;;  (C) Clive Cheong. 2013. Adapted for COM1031 in 2013.
+;;;	REFERENCES:
+;;;	[ATmega]: General 8-bit Atmel Microcontroller document 
+;;;  
+;;;  
+;;;  [ATmega328p]: Specific ATmega328p document (quite large!)
+;;;  downloadable from
+;;;  www.atmel.com/Images/doc7810.pdf
+;;;  [AVR]: Instruction Set Manual
+;;;  downloadable from
+;;;  www.atmel.com/Images/doc0856.pdf
+;;;
 #define __SFR_OFFSET 0
 #include <avr/io.h> 				
 
